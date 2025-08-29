@@ -1,0 +1,49 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./db-mySQL/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - todo-network
+
+  backend:
+    build: ./backend-node.js
+    container_name: backend_node
+    restart: always
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: ${DB_PORT}
+    ports:
+      - '4500:4500'
+    depends_on:
+      - db
+    networks:
+      - todo-network
+
+  frontend:
+    build: ./frontend-react
+    container_name: frontend_react
+    restart: always
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+    networks:
+      - todo-network
+
+networks:
+  todo-network:
+    driver: bridge
