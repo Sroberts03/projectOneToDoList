@@ -1,6 +1,6 @@
-create database if not exists todo_list_db;
+create database if not exists projectOneDataDb;
 
-use todo_list_db;
+use projectOneDataDb;
 
 create table if not exists todos (
   id int auto_increment primary key,
