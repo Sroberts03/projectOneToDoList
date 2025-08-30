@@ -27,7 +27,7 @@ services:
       DB_NAME: ${DB_NAME}
       DB_PORT: ${DB_PORT}
     ports:
-      - '4500:4500'
+      - '4000:4000'
     depends_on:
       - db
     networks:
