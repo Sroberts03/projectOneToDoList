@@ -1,14 +1,17 @@
-# Use official Node.js image as the build environment
-FROM node:20 AS build
+# Development Dockerfile for React app
+FROM node:20
 
 WORKDIR /app
+
+# Install dependencies
 COPY package*.json ./
 RUN npm install
-COPY . .
-RUN npm run build
 
-# Use Nginx to serve the build
-FROM nginx:alpine
-COPY --from=build /app/build /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Copy the rest of the code (for dev, this can be replaced by a bind mount)
+COPY . .
+
+# Expose React dev server port
+EXPOSE 3000
+
+# Start the development server
+CMD ["npm", "start"]
