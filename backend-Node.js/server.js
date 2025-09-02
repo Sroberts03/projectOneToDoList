@@ -1,13 +1,14 @@
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Add this line to parse JSON bodies
+const express = require('express');
+const cors = require('cors');
+const app = express();
+const PORT = process.env.PORT || 4000;
+
+app.use(cors()); // Enable CORS for all origins
 app.use(express.json());
 
-// Import and use your todos router
 const todosRouter = require('./routes/todos');
-app.use(todosRouter);
+app.use('/api/todos', todosRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello from Express backend!');
