@@ -10,6 +10,32 @@ app.use(express.json());
 app.use(todosRouter);
 
 describe('Todos API', () => {
+  it('POST /todos with missing fields should return 500', async () => {
+    const badTodo = { completed: false, user_id: 1 }; // missing title
+    const res = await request(app).post('/todos').send(badTodo);
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  it('POST /todos with invalid user_id should return 500', async () => {
+    const badTodo = { title: 'Bad User', completed: false, user_id: 99999 }; // user_id does not exist
+    const res = await request(app).post('/todos').send(badTodo);
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  it('PUT /todos/:id for non-existent todo should return 404', async () => {
+    const updatedTodo = { title: 'Nope', completed: true, user_id: 1 };
+    const res = await request(app).put('/todos/99999').send(updatedTodo);
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  it('DELETE /todos/:id for non-existent todo should return 404', async () => {
+    const res = await request(app).delete('/todos/99999');
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toHaveProperty('error');
+  });
   afterAll(async () => {
     await new Promise((resolve) => {
       db.query(
