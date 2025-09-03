@@ -1,4 +1,4 @@
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config({ path: '../.env.test' });
 
 const request = require('supertest');
 const express = require('express');
@@ -7,7 +7,7 @@ const db = require('./config/db');
 
 const app = express();
 app.use(express.json());
-app.use(todosRouter);
+app.use('/todos', todosRouter);
 
 describe('Todos API', () => {
   it('POST /todos with missing fields should return 500', async () => {

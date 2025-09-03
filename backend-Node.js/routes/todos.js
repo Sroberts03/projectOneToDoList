@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const TodosDAO = require('../dao/todosDAO');
 
-router.get('/todos', (req, res) => {
+router.get('/', (req, res) => {
   TodosDAO.getAll((err, results) => {
     if (err) {
       console.error('Error in GET /todos:', err);
@@ -12,7 +12,7 @@ router.get('/todos', (req, res) => {
   });
 });
 
-router.get('/todos/:id', (req, res) => {
+router.get('/:id', (req, res) => {
   const todoId = req.params.id;
   TodosDAO.getById(todoId, (err, results) => {
     if (err) {
@@ -26,7 +26,7 @@ router.get('/todos/:id', (req, res) => {
   });
 });
 
-router.post('/todos', (req, res) => {
+router.post('/', (req, res) => {
   TodosDAO.create(req.body, (err, results) => {
     if (err) {
       console.error('Error in POST /todos:', err);
@@ -37,7 +37,7 @@ router.post('/todos', (req, res) => {
   });
 });
 
-router.put('/todos/:id', (req, res) => {
+router.put('/:id', (req, res) => {
   const todoId = req.params.id;
   TodosDAO.update(todoId, req.body, (err, results) => {
     if (err) {
@@ -52,7 +52,7 @@ router.put('/todos/:id', (req, res) => {
   });
 });
 
-router.delete('/todos/:id', (req, res) => {
+router.delete('/:id', (req, res) => {
   const todoId = req.params.id;
   TodosDAO.delete(todoId, (err, results) => {
     if (err) {
