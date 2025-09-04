@@ -13,6 +13,7 @@ create table if not exists todos (
   id int auto_increment primary key,
   title varchar(255) not null,
   completed boolean not null default false,
+  due_date date,
   created_at timestamp default current_timestamp,
   user_id int not null,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
