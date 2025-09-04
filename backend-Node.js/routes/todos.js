@@ -33,8 +33,8 @@ router.post('/', (req, res) => {
       console.error('Error in POST /todos:', err);
       return res.status(500).json({ error: 'Database error', details: err });
     }
-    const { title, completed, user_id, due_date } = req.body;
-    res.status(201).json({ id: results.insertId, title, completed, user_id, due_date });
+    const { title, completed, user_id, due_date, category } = req.body;
+    res.status(201).json({ id: results.insertId, title, completed, user_id, due_date, category });
   });
 });
 
@@ -48,8 +48,8 @@ router.put('/:id', (req, res) => {
     if (results.affectedRows === 0) {
       return res.status(404).json({ error: 'Todo not found' });
     }
-    const { title, completed, user_id, due_date } = req.body;
-    res.json({ id: todoId, title, completed, user_id, due_date });
+    const { title, completed, user_id, due_date, category } = req.body;
+    res.json({ id: todoId, title, completed, user_id, due_date, category });
   });
 });
 
