@@ -222,6 +222,21 @@ function App() {
                 <span className="logout-icon">⎋</span>Logout
               </button>
               <div className="banner-title">Task Party 🎉</div>
+              {/* Move tab buttons into banner */}
+              <div className="banner-tabs">
+                <button
+                  className={`calendar-tab-btn${activeTab === 'list' ? ' active' : ''}`}
+                  onClick={() => setActiveTab('list')}
+                >
+                  Todo List
+                </button>
+                <button
+                  className={`calendar-tab-btn${activeTab === 'calendar' ? ' active' : ''}`}
+                  onClick={() => setActiveTab('calendar')}
+                >
+                  Calendar
+                </button>
+              </div>
               <div className="add-btn-tooltip-wrapper banner-add-btn-wrapper">
                 <button
                   onClick={() => {
@@ -311,21 +326,7 @@ function App() {
         </div>
       ) : (
         <>
-          {/* Tab navigation */}
-          <div className="calendar-tabs">
-            <button
-              className={`calendar-tab-btn${activeTab === 'list' ? ' active' : ''}`}
-              onClick={() => setActiveTab('list')}
-            >
-              Todo List
-            </button>
-            <button
-              className={`calendar-tab-btn${activeTab === 'calendar' ? ' active' : ''}`}
-              onClick={() => setActiveTab('calendar')}
-            >
-              Calendar
-            </button>
-          </div>
+          {/* Tab navigation moved to banner */}
 
           {/* Main content for active tab */}
           {activeTab === 'list' && (
@@ -362,7 +363,7 @@ function App() {
             </>
           )}
           {activeTab === 'calendar' && (
-            <CalendarView todos={todos} />
+            <CalendarView todos={todos} onTodoChange={fetchTodos} />
           )}
 
           {/* Drawer for calendar import (multiple URLs) */}

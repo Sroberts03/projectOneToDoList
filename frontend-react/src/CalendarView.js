@@ -5,7 +5,57 @@ import './CalendarTab.css';
 
 
 
-function CalendarView({ todos }) {
+function CalendarView({ todos, onTodoChange }) {
+  const [menuOpenId, setMenuOpenId] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editTodoId, setEditTodoId] = useState(null);
+  const [newTodo, setNewTodo] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  // Helper for API URL
+  const API_URL = 'http://localhost:4000/api/todos';
+  // Helper for updating todo
+  async function handleUpdateTodo(todo, completed) {
+    try {
+      await fetch(`${API_URL}/${todo.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          title: todo.title,
+          completed,
+          user_id: todo.user_id,
+          due_date: todo.due_date ? todo.due_date.slice(0, 10) : null
+        })
+      });
+      if (typeof onTodoChange === 'function') onTodoChange();
+    } catch (err) {
+      console.error('Error updating todo:', err);
+    }
+  }
+  // Helper for deleting todo
+  async function handleDeleteTodo(id) {
+    try {
+      await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (typeof onTodoChange === 'function') onTodoChange();
+    } catch (err) {
+      console.error('Error deleting todo:', err);
+    }
+  }
+  // Helper for editing todo
+  function openEditDrawer(todo) {
+    setDrawerOpen(true);
+    setEditMode(true);
+    setEditTodoId(todo.id);
+    setNewTodo(todo.title);
+    setDueDate(todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 10) : '');
+    setMenuOpenId(null);
+  }
   const [selectedDate, setSelectedDate] = useState(null);
 
   function handleDayCellDidMount(arg) {
@@ -85,24 +135,7 @@ function CalendarView({ todos }) {
                       checked={!!task.completed}
                       onChange={async (e) => {
                         e.stopPropagation();
-                        try {
-                          await fetch(`/api/todos/${task.id}`, {
-                            method: 'PUT',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              Authorization: `Bearer ${localStorage.getItem('token')}`
-                            },
-                            body: JSON.stringify({
-                              title: task.title,
-                              completed: !task.completed,
-                              user_id: task.user_id,
-                              due_date: task.due_date ? task.due_date.slice(0, 10) : null
-                            })
-                          });
-                          window.location.reload();
-                        } catch (err) {
-                          console.error('Error updating todo:', err);
-                        }
+                        handleUpdateTodo(task, !task.completed);
                       }}
                       className="todo-checkbox"
                     />
@@ -114,8 +147,108 @@ function CalendarView({ todos }) {
                         </span>
                       )}
                     </span>
+                    <div className="menu-btn-absolute">
+                      <button
+                        className="menu-btn"
+                        title="Options"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setMenuOpenId(menuOpenId === task.id ? null : task.id);
+                        }}
+                      >
+                        &#8942;
+                      </button>
+                    </div>
+                    {menuOpenId === task.id && (
+                      <div className="menu-dropdown menu-dropdown-absolute">
+                        <button
+                          onClick={e => {
+                            openEditDrawer(task);
+                          }}
+                          className="menu-dropdown-btn"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={e => {
+                            handleDeleteTodo(task.id);
+                            setMenuOpenId(null);
+                          }}
+                          className="menu-dropdown-btn menu-dropdown-btn-delete"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
+        {/* Drawer for editing todo */}
+        {drawerOpen && (
+          <div className="drawer-overlay" onClick={() => {
+            setDrawerOpen(false);
+            setEditMode(false);
+            setEditTodoId(null);
+          }}>
+            <div className="drawer" onClick={e => e.stopPropagation()}>
+              <button className="drawer-close" onClick={() => {
+                setDrawerOpen(false);
+                setEditMode(false);
+                setEditTodoId(null);
+              }} title="Close">&#10005;</button>
+              <form
+                onSubmit={async e => {
+                  e.preventDefault();
+                  if (!newTodo.trim()) return;
+                  try {
+                    // Find the todo being edited
+                    const editingTodo = todos.find(t => t.id === editTodoId);
+                    await fetch(`${API_URL}/${editTodoId}`, {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                      },
+                      body: JSON.stringify({
+                        title: newTodo,
+                        completed: false,
+                        user_id: editingTodo ? editingTodo.user_id : undefined,
+                        due_date: dueDate || null
+                      })
+                    });
+                    setNewTodo('');
+                    setDueDate('');
+                    setDrawerOpen(false);
+                    setEditMode(false);
+                    setEditTodoId(null);
+                    if (typeof onTodoChange === 'function') onTodoChange();
+                  } catch (err) {
+                    console.error('Error editing todo:', err);
+                  }
+                }}
+                className="drawer-form"
+              >
+                <h3 className="drawer-title">Edit Reminder</h3>
+                <input
+                  type="text"
+                  value={newTodo}
+                  onChange={e => setNewTodo(e.target.value)}
+                  placeholder="What do you want to remember?"
+                  className="drawer-input"
+                  autoFocus
+                />
+                <label htmlFor="due-date" className="drawer-label">Due Date <span className="drawer-label-optional">(optional)</span></label>
+                <input
+                  id="due-date"
+                  type="date"
+                  value={dueDate}
+                  onChange={e => setDueDate(e.target.value)}
+                  className="drawer-input"
+                />
+                <button type="submit" className="drawer-btn">Save Changes</button>
+              </form>
+            </div>
+          </div>
+        )}
               </div>
             )}
           </div>

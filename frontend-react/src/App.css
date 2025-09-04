@@ -1,3 +1,31 @@
+/* Calendar/List tab buttons styled like plus/logout */
+.calendar-tab-btn {
+  font-size: 1.1rem;
+  background: #fff;
+  color: #1976d2;
+  border: none;
+  border-radius: 16px;
+  padding: 0.5rem 1.2rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.10);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.calendar-tab-btn:hover,
+.calendar-tab-btn.active {
+  background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(25, 118, 210, 0.18);
+}
+/* Center the tab buttons in the banner */
+.banner-tabs {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+  margin-right: auto;
+}
 .add-btn-tooltip {
   background: #fff;
   color: #222;
@@ -18,7 +46,8 @@
 .banner-content.split {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 2rem;
   max-width: 900px;
   margin: 0 auto;
 }
