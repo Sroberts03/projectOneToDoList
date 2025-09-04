@@ -330,7 +330,7 @@ function App() {
               </div>
             </>
           )}
-          {!token && <div className="banner-title">Task Party 🎉</div>}
+          {!token && <div className="banner-title">My To-do List</div>}
         </div>
       </div>
   {!token ? (
