@@ -1,6 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
 import './App.css';
+import CalendarView from './CalendarView';
+import './CalendarTab.css';
 
 // Simple iCal parser (only supports DTSTART, SUMMARY, and DUE)
 function parseICal(icalText) {
@@ -30,6 +32,7 @@ function parseICal(icalText) {
 }
 
 function App() {
+  const [activeTab, setActiveTab] = useState('list');
   const [calendarDrawerOpen, setCalendarDrawerOpen] = useState(false);
   const [calendarImportError, setCalendarImportError] = useState('');
   const [calendarUrls, setCalendarUrls] = useState([]);
@@ -265,7 +268,7 @@ function App() {
           {!token && <div className="banner-title">Task Party 🎉</div>}
         </div>
       </div>
-      {!token ? (
+  {!token ? (
         <div className="auth-container">
           <form onSubmit={handleAuth} className="auth-form">
             <h2 className="auth-title">
@@ -308,35 +311,59 @@ function App() {
         </div>
       ) : (
         <>
-          {/* Add item and calendar buttons below banner */}
-          <div className="add-btn-container">
-            <div className="add-btn-tooltip-stack">
-              <button
-                className="add-btn-tooltip"
-                onClick={() => {
-                  setDrawerOpen(true);
-                  setEditMode(false);
-                  setNewTodo('');
-                  setDueDate('');
-                  setEditTodoId(null);
-                }}
-                type="button"
-                tabIndex={0}
-              >
-                Add item
-              </button>
-              <button
-                className="add-btn-tooltip"
-                onClick={() => {
-                  setCalendarDrawerOpen(true);
-                }}
-                type="button"
-                tabIndex={0}
-              >
-                Add calendar
-              </button>
-            </div>
+          {/* Tab navigation */}
+          <div className="calendar-tabs">
+            <button
+              className={`calendar-tab-btn${activeTab === 'list' ? ' active' : ''}`}
+              onClick={() => setActiveTab('list')}
+            >
+              Todo List
+            </button>
+            <button
+              className={`calendar-tab-btn${activeTab === 'calendar' ? ' active' : ''}`}
+              onClick={() => setActiveTab('calendar')}
+            >
+              Calendar
+            </button>
           </div>
+
+          {/* Main content for active tab */}
+          {activeTab === 'list' && (
+            <>
+              {/* Add item and calendar buttons below banner */}
+              <div className="add-btn-container">
+                <div className="add-btn-tooltip-stack">
+                  <button
+                    className="add-btn-tooltip"
+                    onClick={() => {
+                      setDrawerOpen(true);
+                      setEditMode(false);
+                      setNewTodo('');
+                      setDueDate('');
+                      setEditTodoId(null);
+                    }}
+                    type="button"
+                    tabIndex={0}
+                  >
+                    Add item
+                  </button>
+                  <button
+                    className="add-btn-tooltip"
+                    onClick={() => {
+                      setCalendarDrawerOpen(true);
+                    }}
+                    type="button"
+                    tabIndex={0}
+                  >
+                    Add calendar
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+          {activeTab === 'calendar' && (
+            <CalendarView todos={todos} />
+          )}
 
           {/* Drawer for calendar import (multiple URLs) */}
           {calendarDrawerOpen && (
@@ -479,92 +506,98 @@ function App() {
               </div>
             </div>
           )}
-          {loading ? (
-            <p>Loading...</p>
-          ) : (
-            <div className="todo-list">
-              {todos.map(todo => (
-                <div
-                  key={todo.id}
-                  className={`todo-card${selectedTodoId === todo.id ? ' selected' : ''}`}
-                  onClick={() => setSelectedTodoId(todo.id)}
-                >
-                  <input
-                    type="checkbox"
-                    checked={!!todo.completed}
-                    onChange={async (e) => {
-                      e.stopPropagation();
-                      try {
-                        await fetch(`${API_URL}/${todo.id}`, {
-                          method: 'PUT',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${token}`
-                          },
-                          body: JSON.stringify({
-                            title: todo.title,
-                            completed: !todo.completed,
-                            user_id: todo.user_id,
-                            due_date: todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 10) : null
-                          })
-                        });
-                        fetchTodos();
-                      } catch (err) {
-                        console.error('Error updating todo:', err);
-                      }
-                    }}
-                    className="todo-checkbox"
-                  />
-                  <span className={`todo-title${todo.completed ? ' completed' : ''} todo-title-flex`}>
-                    {todo.title}
-                    {todo.due_date && (
-                      <span className="due-date">
-                        Due: {new Date(todo.due_date).toLocaleDateString()}
-                      </span>
-                    )}
-                  </span>
-                  <div className="menu-btn-absolute">
-                    <button
-                      className="menu-btn"
-                      title="Options"
-                      onClick={e => {
+          {activeTab === 'list' && (
+            loading ? (
+              <p>Loading...</p>
+            ) : (
+              <div className="todo-list">
+                {todos.map(todo => (
+                  <div
+                    key={todo.id}
+                    className={`todo-card${selectedTodoId === todo.id ? ' selected' : ''}`}
+                    onClick={() => setSelectedTodoId(todo.id)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!todo.completed}
+                      onChange={async (e) => {
                         e.stopPropagation();
-                        setMenuOpenId(menuOpenId === todo.id ? null : todo.id);
+                        try {
+                          await fetch(`${API_URL}/${todo.id}`, {
+                            method: 'PUT',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              Authorization: `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                              title: todo.title,
+                              completed: !todo.completed,
+                              user_id: todo.user_id,
+                              due_date: todo.due_date ? todo.due_date.slice(0, 10) : null
+                            })
+                          });
+                          fetchTodos();
+                        } catch (err) {
+                          console.error('Error updating todo:', err);
+                        }
                       }}
-                    >
-                      &#8942;
-                    </button>
-                  </div>
-                  {menuOpenId === todo.id && (
-                    <div className="menu-dropdown menu-dropdown-absolute">
+                      className="todo-checkbox"
+                    />
+                    <span className={`todo-title${todo.completed ? ' completed' : ''} todo-title-flex`}>
+                      {todo.title}
+                      {todo.due_date && (
+                        <span className="due-date">
+                          Due: {(() => {
+                            if (!todo.due_date) return '';
+                            const [year, month, day] = todo.due_date.slice(0, 10).split('-');
+                            return `${month}-${day}-${year}`;
+                          })()}
+                        </span>
+                      )}
+                    </span>
+                    <div className="menu-btn-absolute">
                       <button
+                        className="menu-btn"
+                        title="Options"
                         onClick={e => {
-                          setDrawerOpen(true);
-                          setEditMode(true);
-                          setEditTodoId(todo.id);
-                          setNewTodo(todo.title);
-                          setDueDate(todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 10) : '');
-                          setMenuOpenId(null);
+                          e.stopPropagation();
+                          setMenuOpenId(menuOpenId === todo.id ? null : todo.id);
                         }}
-                        className="menu-dropdown-btn"
                       >
-                        Edit
-                      </button>
-                      <button
-                        onClick={e => {
-                          handleDeleteTodo(todo.id);
-                          setSelectedTodoId(null);
-                          setMenuOpenId(null);
-                        }}
-                        className="menu-dropdown-btn menu-dropdown-btn-delete"
-                      >
-                        Delete
+                        &#8942;
                       </button>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    {menuOpenId === todo.id && (
+                      <div className="menu-dropdown menu-dropdown-absolute">
+                        <button
+                          onClick={e => {
+                            setDrawerOpen(true);
+                            setEditMode(true);
+                            setEditTodoId(todo.id);
+                            setNewTodo(todo.title);
+                            setDueDate(todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 10) : '');
+                            setMenuOpenId(null);
+                          }}
+                          className="menu-dropdown-btn"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={e => {
+                            handleDeleteTodo(todo.id);
+                            setSelectedTodoId(null);
+                            setMenuOpenId(null);
+                          }}
+                          className="menu-dropdown-btn menu-dropdown-btn-delete"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </>
       )}

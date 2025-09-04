@@ -1,0 +1,33 @@
+.calendar-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.calendar-tab-btn {
+  background: #fff;
+  color: #1976d2;
+  border: 1px solid #1976d2;
+  border-radius: 8px;
+  padding: 0.5rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.calendar-tab-btn.active {
+  background: #1976d2;
+  color: #fff;
+}
+.calendar-view {
+  max-width: 500px;
+  margin: 0 auto;
+}
+.calendar-tasks-list {
+  margin-top: 2rem;
+}
+
+/* Highlight selected day cell in FullCalendar */
+.fc-day-selected {
+  background: #e3f2fd !important;
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px #1976d233;
+}
