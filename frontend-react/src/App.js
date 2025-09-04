@@ -247,7 +247,7 @@ function App() {
               <button onClick={handleLogout} className="logout-btn">
                 <span className="logout-icon">⎋</span>Logout
               </button>
-              <div className="banner-title">Task Party 🎉</div>
+              <div className="banner-title">My to-do list</div>
               {/* Move tab buttons into banner */}
               <div className="banner-tabs">
                 <button
