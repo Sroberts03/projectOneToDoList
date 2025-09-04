@@ -23,8 +23,8 @@ describe('Todos API', () => {
     const username = 'testuser_' + Date.now();
     await new Promise((resolve, reject) => {
       db.query(
-        "INSERT INTO users (username, password_hash) VALUES (?, 'testpass')",
-        [username],
+        "INSERT INTO users (username, email, password_hash) VALUES (?, ?, 'testpass')",
+        [username, `${username}@example.com`],
         (err, result) => {
           if (err) return reject(err);
           testUserId = result.insertId;

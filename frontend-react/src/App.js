@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import CalendarView from './CalendarView';
+import UserGuide from './UserGuide';
+import ForgotPassword from './ForgotPassword';
 import './CalendarTab.css';
 
 // Simple iCal parser (only supports DTSTART, SUMMARY, and DUE)
@@ -56,6 +58,7 @@ function App() {
     fetchTodos();
   };
   const [activeTab, setActiveTab] = useState('list');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [calendarDrawerOpen, setCalendarDrawerOpen] = useState(false);
   const [calendarImportError, setCalendarImportError] = useState('');
   const [calendarUrls, setCalendarUrls] = useState([]); // [{ url, category }]
@@ -71,6 +74,7 @@ function App() {
   const [userId, setUserId] = useState(localStorage.getItem('userId') || '');
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
@@ -201,15 +205,25 @@ function App() {
   const handleAuth = async (e) => {
     e.preventDefault();
     setAuthError('');
-    if (!username.trim() || !password.trim()) {
-      setAuthError('Username and password required');
-      return;
+    if (authMode === 'register') {
+      if (!username.trim() || !email.trim() || !password.trim()) {
+        setAuthError('Username, email, and password required');
+        return;
+      }
+    } else {
+      if ((!username.trim() && !email.trim()) || !password.trim()) {
+        setAuthError('Username/email and password required');
+        return;
+      }
     }
     try {
+      const payload = authMode === 'register'
+        ? { username, email, password }
+        : { username, email, password };
       const res = await fetch(`${AUTH_URL}/${authMode}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (res.ok && data.token && data.id) {
@@ -244,12 +258,22 @@ function App() {
         <div className="banner-content split">
           {token && (
             <>
-              <button onClick={handleLogout} className="logout-btn">
-                <span className="logout-icon">⎋</span>Logout
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <button onClick={handleLogout} className="logout-btn">
+                  <span className="logout-icon">⎋</span>Logout
+                </button>
+                <button
+                  className={`calendar-tab-btn${activeTab === 'guide' ? ' active' : ''}`}
+                  onClick={() => setActiveTab('guide')}
+                  style={{ fontSize: '1.2rem', width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                  title="Help / User Guide"
+                >
+                  ?
+                </button>
+              </div>
               <div className="banner-title">My to-do list</div>
               {/* Move tab buttons into banner */}
-              <div className="banner-tabs">
+              <div className="banner-tabs" style={{ justifyContent: 'flex-start' }}>
                 <button
                   className={`calendar-tab-btn${activeTab === 'list' ? ' active' : ''}`}
                   onClick={() => setActiveTab('list')}
@@ -310,46 +334,90 @@ function App() {
         </div>
       </div>
   {!token ? (
-        <div className="auth-container">
-          <form onSubmit={handleAuth} className="auth-form">
-            <h2 className="auth-title">
-              {authMode === 'login' ? 'Sign In to Your Account' : 'Create an Account'}
-            </h2>
-            <label className="auth-label" htmlFor="username">Username</label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              placeholder="Enter your username"
-              required
-              className="auth-input"
-            />
-            <label className="auth-label" htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-              className="auth-input"
-            />
-            <button type="submit" className="auth-btn main-btn">
-              {authMode === 'login' ? 'Login' : 'Register'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-              className="auth-btn switch-btn"
-            >
-              {authMode === 'login' ? 'Create an Account' : 'Already have an account? Login'}
-            </button>
-            {authError && (
-              <div className="auth-error">{authError}</div>
-            )}
-          </form>
-        </div>
+        showForgotPassword ? (
+          <ForgotPassword />
+        ) : (
+          <div className="auth-container">
+            <form onSubmit={handleAuth} className="auth-form">
+              <h2 className="auth-title">
+                {authMode === 'login' ? 'Sign In to Your Account' : 'Create an Account'}
+              </h2>
+              {authMode === 'register' ? (
+                <>
+                  <label className="auth-label" htmlFor="username">Username</label>
+                  <input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    placeholder="Enter your username"
+                    required
+                    className="auth-input"
+                  />
+                  <label className="auth-label" htmlFor="email">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    required
+                    className="auth-input"
+                  />
+                </>
+              ) : (
+                <>
+                  <label className="auth-label" htmlFor="identifier">Username or Email</label>
+                  <input
+                    id="identifier"
+                    type="text"
+                    value={username || email}
+                    onChange={e => {
+                      setUsername(e.target.value);
+                      setEmail(e.target.value);
+                    }}
+                    placeholder="Enter your username or email"
+                    required
+                    className="auth-input"
+                  />
+                </>
+              )}
+              <label className="auth-label" htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+                className="auth-input"
+              />
+              <button type="submit" className="auth-btn main-btn">
+                {authMode === 'login' ? 'Login' : 'Register'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+                className="auth-btn switch-btn"
+              >
+                {authMode === 'login' ? 'Create an Account' : 'Already have an account? Login'}
+              </button>
+              {authMode === 'login' && (
+                <button
+                  type="button"
+                  className="auth-btn switch-btn"
+                  style={{ marginTop: '0.5rem', background: '#fff', color: '#1976d2', textDecoration: 'underline', fontSize: '1rem', border: 'none', cursor: 'pointer' }}
+                  onClick={() => setShowForgotPassword(true)}
+                >
+                  Forgot Password?
+                </button>
+              )}
+              {authError && (
+                <div className="auth-error">{authError}</div>
+              )}
+            </form>
+          </div>
+        )
       ) : (
         <>
           {/* Tab navigation moved to banner */}
@@ -390,6 +458,9 @@ function App() {
           )}
           {activeTab === 'calendar' && (
             <CalendarView todos={todos} onTodoChange={fetchTodos} />
+          )}
+          {activeTab === 'guide' && (
+            <UserGuide />
           )}
 
           {/* Drawer for calendar import (multiple URLs) */}
