@@ -3,7 +3,8 @@ const router = express.Router();
 const TodosDAO = require('../dao/todosDAO');
 
 router.get('/', (req, res) => {
-  TodosDAO.getAll((err, results) => {
+  const userId = req.user.id;
+  TodosDAO.getByUserId(userId, (err, results) => {
     if (err) {
       console.error('Error in GET /todos:', err);
       return res.status(500).json({ error: 'Database error', details: err });
@@ -32,8 +33,8 @@ router.post('/', (req, res) => {
       console.error('Error in POST /todos:', err);
       return res.status(500).json({ error: 'Database error', details: err });
     }
-    const { title, completed, user_id } = req.body;
-    res.status(201).json({ id: results.insertId, title, completed, user_id });
+    const { title, completed, user_id, due_date } = req.body;
+    res.status(201).json({ id: results.insertId, title, completed, user_id, due_date });
   });
 });
 
@@ -47,8 +48,8 @@ router.put('/:id', (req, res) => {
     if (results.affectedRows === 0) {
       return res.status(404).json({ error: 'Todo not found' });
     }
-    const { title, completed, user_id } = req.body;
-    res.json({ id: todoId, title, completed, user_id });
+    const { title, completed, user_id, due_date } = req.body;
+    res.json({ id: todoId, title, completed, user_id, due_date });
   });
 });
 
