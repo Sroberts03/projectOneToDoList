@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import CalendarView from './CalendarView';
@@ -32,6 +31,28 @@ function parseICal(icalText) {
 }
 
 function App() {
+  const [todos, setTodos] = useState([]);
+  // Mass delete state for list view
+  const [selectedIds, setSelectedIds] = useState([]);
+  const allIncompleteIds = todos.filter(t => !t.completed).map(t => t.id);
+  const allIds = todos.map(t => t.id);
+  const isAllSelected = selectedIds.length === allIds.length && allIds.length > 0;
+  const handleSelectTodo = (id) => {
+    setSelectedIds(ids => ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]);
+  };
+  const handleSelectAll = () => {
+    setSelectedIds(isAllSelected ? [] : allIds);
+  };
+  const handleMassDelete = async () => {
+    for (const id of selectedIds) {
+      await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    }
+    setSelectedIds([]);
+    fetchTodos();
+  };
   const [activeTab, setActiveTab] = useState('list');
   const [calendarDrawerOpen, setCalendarDrawerOpen] = useState(false);
   const [calendarImportError, setCalendarImportError] = useState('');
@@ -39,7 +60,6 @@ function App() {
   const [calendarUrlInput, setCalendarUrlInput] = useState('');
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [selectedTodoId, setSelectedTodoId] = useState(null);
-  const [todos, setTodos] = useState([]);
   const [newTodo, setNewTodo] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -155,7 +175,7 @@ function App() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [menuOpenId]);
-// ...existing code...
+
   // Delete a todo
   const handleDeleteTodo = async (id) => {
     try {
@@ -228,7 +248,7 @@ function App() {
                   className={`calendar-tab-btn${activeTab === 'list' ? ' active' : ''}`}
                   onClick={() => setActiveTab('list')}
                 >
-                  Todo List
+                  List
                 </button>
                 <button
                   className={`calendar-tab-btn${activeTab === 'calendar' ? ' active' : ''}`}
@@ -511,93 +531,127 @@ function App() {
             loading ? (
               <p>Loading...</p>
             ) : (
-              <div className="todo-list">
-                {todos.map(todo => (
-                  <div
-                    key={todo.id}
-                    className={`todo-card${selectedTodoId === todo.id ? ' selected' : ''}`}
-                    onClick={() => setSelectedTodoId(todo.id)}
-                  >
+              <>
+                {selectedIds.length > 0 && (
+                  <div className="mass-delete-bar">
                     <input
                       type="checkbox"
-                      checked={!!todo.completed}
-                      onChange={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          await fetch(`${API_URL}/${todo.id}`, {
-                            method: 'PUT',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              Authorization: `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                              title: todo.title,
-                              completed: !todo.completed,
-                              user_id: todo.user_id,
-                              due_date: todo.due_date ? todo.due_date.slice(0, 10) : null
-                            })
-                          });
-                          fetchTodos();
-                        } catch (err) {
-                          console.error('Error updating todo:', err);
-                        }
-                      }}
-                      className="todo-checkbox"
+                      checked={isAllSelected}
+                      onChange={handleSelectAll}
+                      id="select-all-list"
                     />
-                    <span className={`todo-title${todo.completed ? ' completed' : ''} todo-title-flex`}>
-                      {todo.title}
-                      {todo.due_date && (
-                        <span className="due-date">
-                          Due: {(() => {
-                            if (!todo.due_date) return '';
-                            const [year, month, day] = todo.due_date.slice(0, 10).split('-');
-                            return `${month}-${day}-${year}`;
-                          })()}
-                        </span>
-                      )}
-                    </span>
-                    <div className="menu-btn-absolute">
-                      <button
-                        className="menu-btn"
-                        title="Options"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setMenuOpenId(menuOpenId === todo.id ? null : todo.id);
-                        }}
-                      >
-                        &#8942;
-                      </button>
-                    </div>
-                    {menuOpenId === todo.id && (
-                      <div className="menu-dropdown menu-dropdown-absolute">
-                        <button
-                          onClick={e => {
-                            setDrawerOpen(true);
-                            setEditMode(true);
-                            setEditTodoId(todo.id);
-                            setNewTodo(todo.title);
-                            setDueDate(todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 10) : '');
-                            setMenuOpenId(null);
-                          }}
-                          className="menu-dropdown-btn"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={e => {
-                            handleDeleteTodo(todo.id);
-                            setSelectedTodoId(null);
-                            setMenuOpenId(null);
-                          }}
-                          className="menu-dropdown-btn menu-dropdown-btn-delete"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
+                    <label htmlFor="select-all-list" style={{ marginRight: 16 }}>Select All</label>
+                    <button
+                      className="drawer-btn"
+                      onClick={handleMassDelete}
+                      disabled={selectedIds.length === 0}
+                    >
+                      Delete Selected
+                    </button>
                   </div>
-                ))}
-              </div>
+                )}
+                <div className="todo-list">
+                  {todos.map(todo => (
+                    <div
+                      key={todo.id}
+                      className={`todo-card${selectedTodoId === todo.id ? ' selected' : ''}`}
+                      onClick={() => setSelectedTodoId(todo.id)}
+                      style={{ display: 'flex', alignItems: 'center', position: 'relative' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!todo.completed}
+                        onChange={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await fetch(`${API_URL}/${todo.id}`, {
+                              method: 'PUT',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`
+                              },
+                              body: JSON.stringify({
+                                title: todo.title,
+                                completed: !todo.completed,
+                                user_id: todo.user_id,
+                                due_date: todo.due_date ? todo.due_date.slice(0, 10) : null
+                              })
+                            });
+                            fetchTodos();
+                          } catch (err) {
+                            console.error('Error updating todo:', err);
+                          }
+                        }}
+                        className="todo-checkbox"
+                        style={{ marginRight: 8 }}
+                      />
+                      <span className={`todo-title${todo.completed ? ' completed' : ''} todo-title-flex`} style={{ flex: 1 }}>
+                        {todo.title}
+                        {todo.due_date && (
+                          <span className="due-date">
+                            Due: {(() => {
+                              if (!todo.due_date) return '';
+                              const [year, month, day] = todo.due_date.slice(0, 10).split('-');
+                              return `${month}-${day}-${year}`;
+                            })()}
+                          </span>
+                        )}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className="menu-btn-absolute">
+                          <button
+                            className="menu-btn"
+                            title="Options"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setMenuOpenId(menuOpenId === todo.id ? null : todo.id);
+                            }}
+                          >
+                            &#8942;
+                          </button>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(todo.id)}
+                          onChange={e => {
+                            e.stopPropagation();
+                            handleSelectTodo(todo.id);
+                          }}
+                          className="mass-delete-checkbox"
+                          style={{ marginLeft: 8 }}
+                        />
+                      </div>
+                      {menuOpenId === todo.id && (
+                        <div className="menu-dropdown menu-dropdown-absolute">
+                          <button
+                            onClick={e => {
+                              setDrawerOpen(true);
+                              setEditMode(true);
+                              setEditTodoId(todo.id);
+                              setNewTodo(todo.title);
+                              setDueDate(todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 10) : '');
+                              setMenuOpenId(null);
+                            }}
+                            className="menu-dropdown-btn"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={e => {
+                              handleDeleteTodo(todo.id);
+                              setSelectedTodoId(null);
+                              setMenuOpenId(null);
+                            }}
+                            className="menu-dropdown-btn menu-dropdown-btn-delete"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
             )
           )}
         </>

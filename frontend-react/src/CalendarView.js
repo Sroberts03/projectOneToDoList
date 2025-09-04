@@ -105,6 +105,27 @@ function CalendarView({ todos, onTodoChange }) {
     );
   }
 
+  // Mass delete state for calendar view
+  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
+  const allTaskIds = selectedTasks.map(t => t.id);
+  const isAllTasksSelected = selectedTaskIds.length === allTaskIds.length && allTaskIds.length > 0;
+  const handleSelectTask = (id) => {
+    setSelectedTaskIds(ids => ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]);
+  };
+  const handleSelectAllTasks = () => {
+    setSelectedTaskIds(isAllTasksSelected ? [] : allTaskIds);
+  };
+  const handleMassDeleteTasks = async () => {
+    for (const id of selectedTaskIds) {
+      await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+    }
+    setSelectedTaskIds([]);
+    if (typeof onTodoChange === 'function') onTodoChange();
+  };
+
   return (
     <div className="calendar-view">
         <FullCalendar
@@ -123,65 +144,102 @@ function CalendarView({ todos, onTodoChange }) {
             {selectedTasks.length === 0 ? (
               <div style={{ color: '#888' }}>No tasks due on this day.</div>
             ) : (
-              <div className="todo-list">
-                {selectedTasks.map(task => (
-                  <div
-                    key={task.id}
-                    className={`todo-card${task.completed ? ' completed' : ''}`}
-                    style={{ marginBottom: 12 }}
-                  >
+              <>
+                {selectedTaskIds.length > 0 && (
+                  <div className="mass-delete-bar">
                     <input
                       type="checkbox"
-                      checked={!!task.completed}
-                      onChange={async (e) => {
-                        e.stopPropagation();
-                        handleUpdateTodo(task, !task.completed);
-                      }}
-                      className="todo-checkbox"
+                      checked={isAllTasksSelected}
+                      onChange={handleSelectAllTasks}
+                      id="select-all-calendar"
                     />
-                    <span style={{ textDecoration: task.completed ? 'line-through' : 'none', marginLeft: 8 }}>
-                      {task.title}
-                      {task.due_date && (
-                        <span className="due-date" style={{ marginLeft: 8 }}>
-                          Due: {formatDate(task.due_date)}
-                        </span>
-                      )}
-                    </span>
-                    <div className="menu-btn-absolute">
-                      <button
-                        className="menu-btn"
-                        title="Options"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setMenuOpenId(menuOpenId === task.id ? null : task.id);
-                        }}
-                      >
-                        &#8942;
-                      </button>
-                    </div>
-                    {menuOpenId === task.id && (
-                      <div className="menu-dropdown menu-dropdown-absolute">
-                        <button
-                          onClick={e => {
-                            openEditDrawer(task);
-                          }}
-                          className="menu-dropdown-btn"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={e => {
-                            handleDeleteTodo(task.id);
-                            setMenuOpenId(null);
-                          }}
-                          className="menu-dropdown-btn menu-dropdown-btn-delete"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
+                    <label htmlFor="select-all-calendar" style={{ marginRight: 16 }}>Select All</label>
+                    <button
+                      className="drawer-btn"
+                      onClick={handleMassDeleteTasks}
+                      disabled={selectedTaskIds.length === 0}
+                    >
+                      Delete Selected
+                    </button>
                   </div>
-                ))}
+                )}
+                <div className="todo-list">
+                  {selectedTasks.map(task => (
+                    <div
+                      key={task.id}
+                      className={`todo-card${task.completed ? ' completed' : ''}`}
+                      style={{ marginBottom: 12, display: 'flex', alignItems: 'center', position: 'relative' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!task.completed}
+                        onChange={async (e) => {
+                          e.stopPropagation();
+                          handleUpdateTodo(task, !task.completed);
+                        }}
+                        className="todo-checkbox"
+                        style={{ marginRight: 8 }}
+                      />
+                      <span style={{ textDecoration: task.completed ? 'line-through' : 'none', marginLeft: 8, flex: 1 }}>
+                        {task.title}
+                        {task.due_date && (
+                          <span className="due-date" style={{ marginLeft: 8 }}>
+                            Due: {formatDate(task.due_date)}
+                          </span>
+                        )}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className="menu-btn-absolute">
+                          <button
+                            className="menu-btn"
+                            title="Options"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setMenuOpenId(menuOpenId === task.id ? null : task.id);
+                            }}
+                          >
+                            &#8942;
+                          </button>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedTaskIds.includes(task.id)}
+                          onChange={e => {
+                            e.stopPropagation();
+                            handleSelectTask(task.id);
+                          }}
+                          className="mass-delete-checkbox"
+                          style={{ marginLeft: 8 }}
+                        />
+                      </div>
+                      {menuOpenId === task.id && (
+                        <div className="menu-dropdown menu-dropdown-absolute">
+                          <button
+                            onClick={e => {
+                              openEditDrawer(task);
+                            }}
+                            className="menu-dropdown-btn"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={e => {
+                              handleDeleteTodo(task.id);
+                              setMenuOpenId(null);
+                            }}
+                            className="menu-dropdown-btn menu-dropdown-btn-delete"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
         {/* Drawer for editing todo */}
         {drawerOpen && (
           <div className="drawer-overlay" onClick={() => {
@@ -247,10 +305,6 @@ function CalendarView({ todos, onTodoChange }) {
                 <button type="submit" className="drawer-btn">Save Changes</button>
               </form>
             </div>
-          </div>
-        )}
-              </div>
-            )}
           </div>
         )}
     </div>
