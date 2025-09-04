@@ -31,6 +31,8 @@ function parseICal(icalText) {
 }
 
 function App() {
+  // Add state for category
+  const [category, setCategory] = useState('General');
   const [todos, setTodos] = useState([]);
   // Mass delete state for list view
   const [selectedIds, setSelectedIds] = useState([]);
@@ -56,8 +58,9 @@ function App() {
   const [activeTab, setActiveTab] = useState('list');
   const [calendarDrawerOpen, setCalendarDrawerOpen] = useState(false);
   const [calendarImportError, setCalendarImportError] = useState('');
-  const [calendarUrls, setCalendarUrls] = useState([]);
+  const [calendarUrls, setCalendarUrls] = useState([]); // [{ url, category }]
   const [calendarUrlInput, setCalendarUrlInput] = useState('');
+  const [calendarCategory, setCalendarCategory] = useState('General');
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [selectedTodoId, setSelectedTodoId] = useState(null);
   const [newTodo, setNewTodo] = useState('');
@@ -131,12 +134,14 @@ function App() {
             title: newTodo,
             completed: false,
             user_id: parseInt(userId, 10),
-            due_date: dueDate || null
+            due_date: dueDate || null,
+            category
           })
         });
         if (res.ok) {
           setNewTodo('');
           setDueDate('');
+          setCategory('General');
           setDrawerOpen(false);
           setEditMode(false);
           setEditTodoId(null);
@@ -150,11 +155,12 @@ function App() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`
           },
-          body: JSON.stringify({ title: newTodo, completed: false, user_id: parseInt(userId, 10), due_date: dueDate || null })
+          body: JSON.stringify({ title: newTodo, completed: false, user_id: parseInt(userId, 10), due_date: dueDate || null, category })
         });
         if (res.ok) {
           setNewTodo('');
           setDueDate('');
+          setCategory('General');
           setDrawerOpen(false);
           fetchTodos();
         }
@@ -395,8 +401,9 @@ function App() {
                   onSubmit={e => {
                     e.preventDefault();
                     if (!calendarUrlInput.trim()) return;
-                    setCalendarUrls(urls => [...urls, calendarUrlInput.trim()]);
+                    setCalendarUrls(urls => [...urls, { url: calendarUrlInput.trim(), category: calendarCategory }]);
                     setCalendarUrlInput('');
+                    setCalendarCategory('General');
                   }}
                   className="drawer-form drawer-form-margin"
                 >
@@ -410,6 +417,18 @@ function App() {
                     className="drawer-input"
                     placeholder="https://..."
                   />
+                  <label htmlFor="calendar-category" className="drawer-label">Category for Imported Events</label>
+                  <select
+                    id="calendar-category"
+                    value={calendarCategory}
+                    onChange={e => setCalendarCategory(e.target.value)}
+                    className="drawer-input"
+                  >
+                    <option value="General">General</option>
+                    <option value="School">School</option>
+                    <option value="Work">Work</option>
+                    <option value="Personal">Personal</option>
+                  </select>
                   <button type="submit" className="drawer-btn" disabled={!calendarUrlInput.trim()}>Add Link</button>
                 </form>
                 {/* List of calendar URLs with remove option */}
@@ -417,9 +436,10 @@ function App() {
                   <h4 className="calendar-list-title">Calendars to Import:</h4>
                   {calendarUrls.length === 0 && <div className="calendar-list-empty">No calendars added yet.</div>}
                   <ul className="calendar-list">
-                    {calendarUrls.map((url, idx) => (
-                      <li key={url + idx} className="calendar-list-item">
-                        <span className="calendar-list-url">{url}</span>
+                    {calendarUrls.map((obj, idx) => (
+                      <li key={obj.url + idx} className="calendar-list-item">
+                        <span className="calendar-list-url">{obj.url}</span>
+                        <span className="calendar-list-category">({obj.category})</span>
                         <button type="button" className="calendar-remove-btn" onClick={() => setCalendarUrls(urls => urls.filter((_, i) => i !== idx))}>Remove</button>
                       </li>
                     ))}
@@ -432,27 +452,27 @@ function App() {
                     setCalendarImportError('');
                     if (!calendarUrls.length) return;
                     try {
-                      for (const url of calendarUrls) {
+                      for (const obj of calendarUrls) {
                         const res = await fetch('http://localhost:4000/api/proxy-ical', {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
                           },
-                          body: JSON.stringify({ url })
+                          body: JSON.stringify({ url: obj.url })
                         });
                         const data = await res.json();
                         if (!res.ok || !data.ical) {
-                          setCalendarImportError('Failed to fetch calendar: ' + url);
+                          setCalendarImportError('Failed to fetch calendar: ' + obj.url);
                           continue;
                         }
                         const text = data.ical;
                         if (!text || !text.includes('BEGIN:VCALENDAR')) {
-                          setCalendarImportError('The link does not contain a valid calendar: ' + url);
+                          setCalendarImportError('The link does not contain a valid calendar: ' + obj.url);
                           continue;
                         }
                         const events = parseICal(text);
                         if (!events.length) {
-                          setCalendarImportError('No events found in the calendar: ' + url);
+                          setCalendarImportError('No events found in the calendar: ' + obj.url);
                           continue;
                         }
                         for (const ev of events) {
@@ -466,7 +486,8 @@ function App() {
                               title: ev.SUMMARY,
                               completed: false,
                               user_id: parseInt(userId, 10),
-                              due_date: ev.DTSTART ? ev.DTSTART.slice(0, 10) : null
+                              due_date: ev.DTSTART ? ev.DTSTART.slice(0, 10) : null,
+                              category: obj.category
                             })
                           });
                         }
@@ -522,6 +543,18 @@ function App() {
                     onChange={e => setDueDate(e.target.value)}
                     className="drawer-input"
                   />
+                  <label htmlFor="category" className="drawer-label">Category</label>
+                  <select
+                    id="category"
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    className="drawer-input"
+                  >
+                    <option value="General">General</option>
+                    <option value="School">School</option>
+                    <option value="Work">Work</option>
+                    <option value="Personal">Personal</option>
+                  </select>
                   <button type="submit" className="drawer-btn">{editMode ? 'Save Changes' : 'Add'}</button>
                 </form>
               </div>
@@ -532,124 +565,192 @@ function App() {
               <p>Loading...</p>
             ) : (
               <>
-                {selectedIds.length > 0 && (
-                  <div className="mass-delete-bar">
-                    <input
-                      type="checkbox"
-                      checked={isAllSelected}
-                      onChange={handleSelectAll}
-                      id="select-all-list"
-                    />
-                    <label htmlFor="select-all-list" style={{ marginRight: 16 }}>Select All</label>
-                    <button
-                      className="drawer-btn"
-                      onClick={handleMassDelete}
-                      disabled={selectedIds.length === 0}
-                    >
-                      Delete Selected
-                    </button>
-                  </div>
-                )}
-                <div className="todo-list">
-                  {todos.map(todo => (
-                    <div
-                      key={todo.id}
-                      className={`todo-card${selectedTodoId === todo.id ? ' selected' : ''}`}
-                      onClick={() => setSelectedTodoId(todo.id)}
-                      style={{ display: 'flex', alignItems: 'center', position: 'relative' }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={!!todo.completed}
-                        onChange={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            await fetch(`${API_URL}/${todo.id}`, {
-                              method: 'PUT',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                Authorization: `Bearer ${token}`
-                              },
-                              body: JSON.stringify({
-                                title: todo.title,
-                                completed: !todo.completed,
-                                user_id: todo.user_id,
-                                due_date: todo.due_date ? todo.due_date.slice(0, 10) : null
-                              })
-                            });
-                            fetchTodos();
-                          } catch (err) {
-                            console.error('Error updating todo:', err);
-                          }
-                        }}
-                        className="todo-checkbox"
-                        style={{ marginRight: 8 }}
-                      />
-                      <span className={`todo-title${todo.completed ? ' completed' : ''} todo-title-flex`} style={{ flex: 1 }}>
-                        {todo.title}
-                        {todo.due_date && (
-                          <span className="due-date">
-                            Due: {(() => {
-                              if (!todo.due_date) return '';
-                              const [year, month, day] = todo.due_date.slice(0, 10).split('-');
-                              return `${month}-${day}-${year}`;
-                            })()}
-                          </span>
-                        )}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div className="menu-btn-absolute">
-                          <button
-                            className="menu-btn"
-                            title="Options"
-                            onClick={e => {
-                              e.stopPropagation();
-                              setMenuOpenId(menuOpenId === todo.id ? null : todo.id);
-                            }}
-                          >
-                            &#8942;
-                          </button>
-                        </div>
+                {(() => {
+                  // Count how many categories have at least one selected todo
+                  const categories = ['General', 'School', 'Work', 'Personal'];
+                  const selectedCategoryCount = categories.filter(cat => {
+                    const todosInCategory = todos.filter(todo => todo.category === cat);
+                    const allIdsInCategory = todosInCategory.map(t => t.id);
+                    return selectedIds.some(id => allIdsInCategory.includes(id));
+                  }).length;
+                  if (selectedCategoryCount >= 2) {
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 16 }}>
                         <input
                           type="checkbox"
-                          checked={selectedIds.includes(todo.id)}
-                          onChange={e => {
-                            e.stopPropagation();
-                            handleSelectTodo(todo.id);
+                          checked={selectedIds.length === todos.length && todos.length > 0}
+                          onChange={() => {
+                            setSelectedIds(selectedIds.length === todos.length ? [] : todos.map(t => t.id));
                           }}
-                          className="mass-delete-checkbox"
-                          style={{ marginLeft: 8 }}
+                          id="select-all-global"
                         />
+                        <label htmlFor="select-all-global" style={{ marginRight: 8 }}>Select All</label>
+                        <button
+                          className="drawer-btn"
+                          onClick={async () => {
+                            await Promise.all(selectedIds.map(id => fetch(`${API_URL}/${id}`, {
+                              method: 'DELETE',
+                              headers: { Authorization: `Bearer ${token}` }
+                            })));
+                            setSelectedIds([]);
+                            fetchTodos();
+                          }}
+                          disabled={selectedIds.length === 0}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20 }}
+                          title="Delete Selected"
+                        >
+                          <span role="img" aria-label="Delete" style={{ pointerEvents: 'none' }}>🗑️</span>
+                        </button>
                       </div>
-                      {menuOpenId === todo.id && (
-                        <div className="menu-dropdown menu-dropdown-absolute">
-                          <button
-                            onClick={e => {
-                              setDrawerOpen(true);
-                              setEditMode(true);
-                              setEditTodoId(todo.id);
-                              setNewTodo(todo.title);
-                              setDueDate(todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 10) : '');
-                              setMenuOpenId(null);
-                            }}
-                            className="menu-dropdown-btn"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={e => {
-                              handleDeleteTodo(todo.id);
-                              setSelectedTodoId(null);
-                              setMenuOpenId(null);
-                            }}
-                            className="menu-dropdown-btn menu-dropdown-btn-delete"
-                          >
-                            Delete
-                          </button>
+                    );
+                  }
+                  return null;
+                })()}
+                <div className="todo-list-columns" style={{ display: 'flex', gap: '16px', justifyContent: 'space-between' }}>
+                  {['General', 'School', 'Work', 'Personal'].map(category => {
+                    const todosInCategory = todos.filter(todo => todo.category === category);
+                    const allIdsInCategory = todosInCategory.map(t => t.id);
+                    const isAllSelectedInCategory = allIdsInCategory.length > 0 && allIdsInCategory.every(id => selectedIds.includes(id));
+                    const selectedCountInCategory = selectedIds.filter(id => allIdsInCategory.includes(id)).length;
+                    const handleSelectAllCategory = () => {
+                      setSelectedIds(isAllSelectedInCategory ? selectedIds.filter(id => !allIdsInCategory.includes(id)) : [...selectedIds, ...allIdsInCategory.filter(id => !selectedIds.includes(id))]);
+                    };
+                    return (
+                      <div key={category} className="todo-category-column" style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 8 }}>
+                          <h3 style={{ textAlign: 'center', margin: 0, width: '100%' }}>{category}</h3>
+                          {(todosInCategory.length > 0 && selectedCountInCategory > 0) && (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 8 }}>
+                              <input
+                                type="checkbox"
+                                checked={isAllSelectedInCategory}
+                                onChange={handleSelectAllCategory}
+                                id={`select-all-list-${category}`}
+                              />
+                              <label htmlFor={`select-all-list-${category}`} style={{ marginRight: 8 }}>Select All in Category</label>
+                              <button
+                                className="drawer-btn"
+                                onClick={async () => {
+                                  const idsToDelete = selectedIds.filter(id => todosInCategory.some(t => t.id === id));
+                                  await Promise.all(idsToDelete.map(id => fetch(`${API_URL}/${id}`, {
+                                    method: 'DELETE',
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  })));
+                                  setSelectedIds(ids => ids.filter(id => !idsToDelete.includes(id)));
+                                  fetchTodos();
+                                }}
+                                disabled={selectedIds.filter(id => todosInCategory.some(t => t.id === id)).length === 0}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20 }}
+                                title="Delete Selected"
+                              >
+                                <span role="img" aria-label="Delete" style={{ pointerEvents: 'none' }}>🗑️</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {todosInCategory.map(todo => (
+                          <div
+                            key={todo.id}
+                            className={`todo-card${selectedTodoId === todo.id ? ' selected' : ''}`}
+                            onClick={() => setSelectedTodoId(todo.id)}
+                            style={{ display: 'flex', alignItems: 'center', position: 'relative', marginBottom: 8 }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={!!todo.completed}
+                              onChange={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  await fetch(`${API_URL}/${todo.id}`, {
+                                    method: 'PUT',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      Authorization: `Bearer ${token}`
+                                    },
+                                    body: JSON.stringify({
+                                      title: todo.title,
+                                      completed: !todo.completed,
+                                      user_id: todo.user_id,
+                                      due_date: todo.due_date ? todo.due_date.slice(0, 10) : null,
+                                      category: todo.category
+                                    })
+                                  });
+                                  fetchTodos();
+                                } catch (err) {
+                                  console.error('Error updating todo:', err);
+                                }
+                              }}
+                              className="todo-checkbox"
+                              style={{ marginRight: 8 }}
+                            />
+                            <span className={`todo-title${todo.completed ? ' completed' : ''} todo-title-flex`} style={{ flex: 1 }}>
+                              {todo.title}
+                              {todo.due_date && (
+                                <span className="due-date">
+                                  Due: {(() => {
+                                    if (!todo.due_date) return '';
+                                    const [year, month, day] = todo.due_date.slice(0, 10).split('-');
+                                    return `${month}-${day}-${year}`;
+                                  })()}
+                                </span>
+                              )}
+                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div className="menu-btn-absolute">
+                                <button
+                                  className="menu-btn"
+                                  title="Options"
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    setMenuOpenId(menuOpenId === todo.id ? null : todo.id);
+                                  }}
+                                >
+                                  &#8942;
+                                </button>
+                              </div>
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.includes(todo.id)}
+                                onChange={e => {
+                                  e.stopPropagation();
+                                  handleSelectTodo(todo.id);
+                                }}
+                                className="mass-delete-checkbox"
+                                style={{ marginLeft: 8 }}
+                              />
+                            </div>
+                            {menuOpenId === todo.id && (
+                              <div className="menu-dropdown menu-dropdown-absolute">
+                                <button
+                                  onClick={e => {
+                                    setDrawerOpen(true);
+                                    setEditMode(true);
+                                    setEditTodoId(todo.id);
+                                    setNewTodo(todo.title);
+                                    setDueDate(todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 10) : '');
+                                    setMenuOpenId(null);
+                                  }}
+                                  className="menu-dropdown-btn"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={e => {
+                                    handleDeleteTodo(todo.id);
+                                    setSelectedTodoId(null);
+                                    setMenuOpenId(null);
+                                  }}
+                                  className="menu-dropdown-btn menu-dropdown-btn-delete"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             )

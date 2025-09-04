@@ -6,6 +6,8 @@ import './CalendarTab.css';
 
 
 function CalendarView({ todos, onTodoChange }) {
+  // Add state for category
+  const [category, setCategory] = useState('General');
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -27,7 +29,8 @@ function CalendarView({ todos, onTodoChange }) {
           title: todo.title,
           completed,
           user_id: todo.user_id,
-          due_date: todo.due_date ? todo.due_date.slice(0, 10) : null
+          due_date: todo.due_date ? todo.due_date.slice(0, 10) : null,
+          category: todo.category
         })
       });
       if (typeof onTodoChange === 'function') onTodoChange();
@@ -54,6 +57,7 @@ function CalendarView({ todos, onTodoChange }) {
     setEditTodoId(todo.id);
     setNewTodo(todo.title);
     setDueDate(todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 10) : '');
+    setCategory(todo.category || 'General');
     setMenuOpenId(null);
   }
   const [selectedDate, setSelectedDate] = useState(null);
@@ -270,11 +274,13 @@ function CalendarView({ todos, onTodoChange }) {
                         title: newTodo,
                         completed: false,
                         user_id: editingTodo ? editingTodo.user_id : undefined,
-                        due_date: dueDate || null
+                        due_date: dueDate || null,
+                        category
                       })
                     });
                     setNewTodo('');
                     setDueDate('');
+                    setCategory('General');
                     setDrawerOpen(false);
                     setEditMode(false);
                     setEditTodoId(null);
@@ -302,6 +308,18 @@ function CalendarView({ todos, onTodoChange }) {
                   onChange={e => setDueDate(e.target.value)}
                   className="drawer-input"
                 />
+                <label htmlFor="category" className="drawer-label">Category</label>
+                <select
+                  id="category"
+                  value={category}
+                  onChange={e => setCategory(e.target.value)}
+                  className="drawer-input"
+                >
+                  <option value="General">General</option>
+                  <option value="School">School</option>
+                  <option value="Work">Work</option>
+                  <option value="Personal">Personal</option>
+                </select>
                 <button type="submit" className="drawer-btn">Save Changes</button>
               </form>
             </div>
