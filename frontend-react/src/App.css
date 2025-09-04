@@ -1,3 +1,164 @@
+.add-btn-tooltip {
+  background: #fff;
+  color: #222;
+  padding: 0.05rem 1.2rem;
+  min-width: 120px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  margin: 0;
+}
+/* Banner content layout */
+.banner-content.split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.banner-title {
+  flex: 1;
+  text-align: center;
+  font-size: 2.2rem;
+}
+.banner-add-btn {
+  font-size: 2rem;
+  background: #fff;
+  color: #1976d2;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.10);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.banner-add-btn:hover {
+  background: #1976d2;
+  color: #fff;
+}
+.logout-btn {
+  font-size: 1.1rem;
+  background: #fff;
+  color: #1976d2;
+  border: none;
+  border-radius: 16px;
+  padding: 0.5rem 1.2rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.10);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.logout-btn:hover {
+  background: #1976d2;
+  color: #fff;
+}
+/* Banner for site title */
+.site-banner {
+  width: 100%;
+  background: linear-gradient(90deg, #1976d2 0%, #64b5f6 100%);
+  color: #fff;
+  padding: 1.2rem 0;
+  text-align: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.10);
+  margin-bottom: 2rem;
+  border-radius: 0 0 24px 24px;
+}
+.add-btn-tooltip-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.add-btn-tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+
+.add-btn-tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.add-btn-tooltip-stack {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.add-btn-tooltip {
+  background: #fff;
+  color: #222;
+  padding: 0.05rem 1.2rem;
+  min-width: 120px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  margin: 0;
+}
+.add-btn-tooltip:first-child {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.add-btn-tooltip:last-child {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.add-btn-tooltip-wrapper:hover .add-btn-tooltip-stack {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+
+.add-btn-tooltip:hover {
+  background: #1976d2;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(25, 118, 210, 0.18);
+}
+
+.add-btn-tooltip::before {
+  content: '';
+  display: block;
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 10px solid #fff;
+  margin-right: -2px;
+}
+
+.add-btn-tooltip-wrapper:hover .add-btn-tooltip {
+  opacity: 1;
+  right: 100%;
+  pointer-events: auto;
+}
 /* Ensure selected todo card is above others when menu is open */
 .todo-card.selected {
   z-index: 10;
@@ -177,14 +338,13 @@
   background: rgba(0,0,0,0.18);
   z-index: 99;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
 }
 .drawer {
   background: #fff;
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
-  box-shadow: 0 -2px 12px rgba(0,0,0,0.12);
+  border-radius: 18px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.18);
   padding: 2rem;
   min-width: 320px;
   width: 100%;
@@ -278,6 +438,82 @@
   margin-left: 0.5rem;
 }
 
+/* Drawer form margin */
+.drawer-form-margin {
+  margin-bottom: 1rem;
+}
+
+/* Calendar list container and items */
+.calendar-list-container {
+  margin-bottom: 1rem;
+}
+.calendar-list-title {
+  margin: 0 0 0.5rem 0;
+}
+.calendar-list-empty {
+  color: #888;
+}
+.calendar-list {
+  padding-left: 0;
+}
+.calendar-list-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.calendar-list-url {
+  flex: 1;
+  word-break: break-all;
+}
+.calendar-remove-btn {
+  margin-left: 8px;
+  color: #d32f2f;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+.calendar-import-error {
+  color: #d32f2f;
+  margin-top: 1rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Menu dropdown and buttons */
+.menu-btn-absolute {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+}
+.menu-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+}
+.menu-dropdown-absolute {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%) translateX(8px);
+  z-index: 99999;
+}
+.menu-dropdown-btn {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-dropdown-btn-delete {
+  color: #d32f2f;
+}
+
 .App {
   text-align: center;
   min-height: 100vh;
@@ -288,7 +524,12 @@
 
 .App-logo {
   height: 40vmin;
-  pointer-events: none;
+  pointer-events: auto;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  transition: opacity 0.2s, right 0.2s, box-shadow 0.2s;
 }
 
 @media (prefers-reduced-motion: no-preference) {

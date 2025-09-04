@@ -1,7 +1,39 @@
+
 import React, { useEffect, useState } from 'react';
 import './App.css';
 
+// Simple iCal parser (only supports DTSTART, SUMMARY, and DUE)
+function parseICal(icalText) {
+  const events = [];
+  const lines = icalText.split(/\r?\n/);
+  let event = null;
+  for (const line of lines) {
+    if (line.startsWith('BEGIN:VEVENT')) {
+      event = {};
+    } else if (line.startsWith('END:VEVENT')) {
+      if (event && event.SUMMARY && event.DTSTART) {
+        events.push(event);
+      }
+      event = null;
+    } else if (event) {
+      if (line.startsWith('SUMMARY:')) {
+        event.SUMMARY = line.replace('SUMMARY:', '').trim();
+      } else if (line.startsWith('DTSTART')) {
+        const dt = line.split(':')[1];
+        event.DTSTART = dt ? dt.trim() : '';
+      } else if (line.startsWith('DUE:')) {
+        event.DUE = line.replace('DUE:', '').trim();
+      }
+    }
+  }
+  return events;
+}
+
 function App() {
+  const [calendarDrawerOpen, setCalendarDrawerOpen] = useState(false);
+  const [calendarImportError, setCalendarImportError] = useState('');
+  const [calendarUrls, setCalendarUrls] = useState([]);
+  const [calendarUrlInput, setCalendarUrlInput] = useState('');
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [selectedTodoId, setSelectedTodoId] = useState(null);
   const [todos, setTodos] = useState([]);
@@ -179,7 +211,60 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Todo List</h1>
+      <div className="site-banner">
+        <div className="banner-content split">
+          {token && (
+            <>
+              <button onClick={handleLogout} className="logout-btn">
+                <span className="logout-icon">⎋</span>Logout
+              </button>
+              <div className="banner-title">Task Party 🎉</div>
+              <div className="add-btn-tooltip-wrapper banner-add-btn-wrapper">
+                <button
+                  onClick={() => {
+                    setDrawerOpen(true);
+                    setEditMode(false);
+                    setNewTodo('');
+                    setDueDate('');
+                    setEditTodoId(null);
+                  }}
+                  className="add-btn banner-add-btn"
+                  title="Add Todo"
+                >
+                  &#43;
+                </button>
+                <div className="add-btn-tooltip-stack">
+                  <button
+                    className="add-btn-tooltip"
+                    onClick={() => {
+                      setDrawerOpen(true);
+                      setEditMode(false);
+                      setNewTodo('');
+                      setDueDate('');
+                      setEditTodoId(null);
+                    }}
+                    type="button"
+                    tabIndex={0}
+                  >
+                    Add item
+                  </button>
+                  <button
+                    className="add-btn-tooltip"
+                    onClick={() => {
+                      setCalendarDrawerOpen(true);
+                    }}
+                    type="button"
+                    tabIndex={0}
+                  >
+                    Add calendar
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+          {!token && <div className="banner-title">Task Party 🎉</div>}
+        </div>
+      </div>
       {!token ? (
         <div className="auth-container">
           <form onSubmit={handleAuth} className="auth-form">
@@ -223,27 +308,140 @@ function App() {
         </div>
       ) : (
         <>
-          <div className="logout-btn-container">
-            <button onClick={handleLogout} className="logout-btn">
-              <span className="logout-icon">⎋</span>Logout
-            </button>
-          </div>
-          {/* Floating plus button at top right */}
+          {/* Add item and calendar buttons below banner */}
           <div className="add-btn-container">
-            <button
-              onClick={() => {
-                setDrawerOpen(true);
-                setEditMode(false);
-                setNewTodo('');
-                setDueDate('');
-                setEditTodoId(null);
-              }}
-              className="add-btn"
-              title="Add Todo"
-            >
-              &#43;
-            </button>
+            <div className="add-btn-tooltip-stack">
+              <button
+                className="add-btn-tooltip"
+                onClick={() => {
+                  setDrawerOpen(true);
+                  setEditMode(false);
+                  setNewTodo('');
+                  setDueDate('');
+                  setEditTodoId(null);
+                }}
+                type="button"
+                tabIndex={0}
+              >
+                Add item
+              </button>
+              <button
+                className="add-btn-tooltip"
+                onClick={() => {
+                  setCalendarDrawerOpen(true);
+                }}
+                type="button"
+                tabIndex={0}
+              >
+                Add calendar
+              </button>
+            </div>
           </div>
+
+          {/* Drawer for calendar import (multiple URLs) */}
+          {calendarDrawerOpen && (
+            <div className="drawer-overlay" onClick={() => setCalendarDrawerOpen(false)}>
+              <div className="drawer" onClick={e => e.stopPropagation()}>
+                <button className="drawer-close" onClick={() => setCalendarDrawerOpen(false)} title="Close">&#10005;</button>
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    if (!calendarUrlInput.trim()) return;
+                    setCalendarUrls(urls => [...urls, calendarUrlInput.trim()]);
+                    setCalendarUrlInput('');
+                  }}
+                  className="drawer-form drawer-form-margin"
+                >
+                  <h3 className="drawer-title">Add Calendar Link</h3>
+                  <label htmlFor="calendar-url" className="drawer-label">Paste your calendar link (Canvas/BYU Learning Suite)</label>
+                  <input
+                    id="calendar-url"
+                    type="url"
+                    value={calendarUrlInput}
+                    onChange={e => setCalendarUrlInput(e.target.value)}
+                    className="drawer-input"
+                    placeholder="https://..."
+                  />
+                  <button type="submit" className="drawer-btn" disabled={!calendarUrlInput.trim()}>Add Link</button>
+                </form>
+                {/* List of calendar URLs with remove option */}
+                <div className="calendar-list-container">
+                  <h4 className="calendar-list-title">Calendars to Import:</h4>
+                  {calendarUrls.length === 0 && <div className="calendar-list-empty">No calendars added yet.</div>}
+                  <ul className="calendar-list">
+                    {calendarUrls.map((url, idx) => (
+                      <li key={url + idx} className="calendar-list-item">
+                        <span className="calendar-list-url">{url}</span>
+                        <button type="button" className="calendar-remove-btn" onClick={() => setCalendarUrls(urls => urls.filter((_, i) => i !== idx))}>Remove</button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {/* Import all calendars button */}
+                <form
+                  onSubmit={async e => {
+                    e.preventDefault();
+                    setCalendarImportError('');
+                    if (!calendarUrls.length) return;
+                    try {
+                      for (const url of calendarUrls) {
+                        const res = await fetch('http://localhost:4000/api/proxy-ical', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({ url })
+                        });
+                        const data = await res.json();
+                        if (!res.ok || !data.ical) {
+                          setCalendarImportError('Failed to fetch calendar: ' + url);
+                          continue;
+                        }
+                        const text = data.ical;
+                        if (!text || !text.includes('BEGIN:VCALENDAR')) {
+                          setCalendarImportError('The link does not contain a valid calendar: ' + url);
+                          continue;
+                        }
+                        const events = parseICal(text);
+                        if (!events.length) {
+                          setCalendarImportError('No events found in the calendar: ' + url);
+                          continue;
+                        }
+                        for (const ev of events) {
+                          await fetch(API_URL, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              Authorization: `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                              title: ev.SUMMARY,
+                              completed: false,
+                              user_id: parseInt(userId, 10),
+                              due_date: ev.DTSTART ? ev.DTSTART.slice(0, 10) : null
+                            })
+                          });
+                        }
+                      }
+                      fetchTodos();
+                      setCalendarDrawerOpen(false);
+                      setCalendarUrls([]);
+                    } catch (err) {
+                      setCalendarImportError('Failed to import calendar(s). Please check the links and try again.');
+                    }
+                  }}
+                  className="drawer-form"
+                >
+                  <button type="submit" className="drawer-btn" disabled={!calendarUrls.length}>Import All Events</button>
+                  {calendarImportError && (
+                    <div className="calendar-import-error">
+                      {calendarImportError}
+                    </div>
+                  )}
+                </form>
+              </div>
+            </div>
+          )}
 
           {/* Drawer for adding/editing todo */}
           {drawerOpen && (
@@ -290,7 +488,6 @@ function App() {
                   key={todo.id}
                   className={`todo-card${selectedTodoId === todo.id ? ' selected' : ''}`}
                   onClick={() => setSelectedTodoId(todo.id)}
-                  style={{ cursor: 'pointer', position: 'relative' }}
                 >
                   <input
                     type="checkbox"
@@ -326,7 +523,7 @@ function App() {
                       </span>
                     )}
                   </span>
-                  <div style={{ position: 'absolute', top: '50%', right: 8, transform: 'translateY(-50%)' }}>
+                  <div className="menu-btn-absolute">
                     <button
                       className="menu-btn"
                       title="Options"
@@ -334,13 +531,12 @@ function App() {
                         e.stopPropagation();
                         setMenuOpenId(menuOpenId === todo.id ? null : todo.id);
                       }}
-                      style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', padding: 0 }}
                     >
                       &#8942;
                     </button>
                   </div>
                   {menuOpenId === todo.id && (
-                    <div className="menu-dropdown" style={{ position: 'absolute', top: '50%', left: '100%', transform: 'translateY(-50%) translateX(8px)', zIndex: 99999 }}>
+                    <div className="menu-dropdown menu-dropdown-absolute">
                       <button
                         onClick={e => {
                           setDrawerOpen(true);
@@ -350,7 +546,7 @@ function App() {
                           setDueDate(todo.due_date ? new Date(todo.due_date).toISOString().slice(0, 10) : '');
                           setMenuOpenId(null);
                         }}
-                        style={{ display: 'block', width: '100%', background: 'none', border: 'none', padding: '0.75rem 1.5rem', textAlign: 'left', cursor: 'pointer' }}
+                        className="menu-dropdown-btn"
                       >
                         Edit
                       </button>
@@ -360,7 +556,7 @@ function App() {
                           setSelectedTodoId(null);
                           setMenuOpenId(null);
                         }}
-                        style={{ display: 'block', width: '100%', background: 'none', border: 'none', padding: '0.75rem 1.5rem', textAlign: 'left', color: '#d32f2f', cursor: 'pointer' }}
+                        className="menu-dropdown-btn menu-dropdown-btn-delete"
                       >
                         Delete
                       </button>
